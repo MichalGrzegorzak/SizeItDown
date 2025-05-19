@@ -9,7 +9,7 @@ public class HandbrakeRunner
     private readonly ConvResults _results;
     object writeLock = new object();
 
-    public HandbrakeRunner(MyStringBuilder sb, ConvResults results)
+    public HandbrakeRunner(ConvResults results, MyStringBuilder sb)
     {
         _sb = sb;
         _results = results;
@@ -25,8 +25,6 @@ public class HandbrakeRunner
         _sb.AppendLineAndConsole($"\nUsing Handbrake video preset: {o.VideoPreset}");
         _sb.AppendLineAndConsole($"Handbrake logs in: {logFilePath}\n");
 
-
-
         //aquiring logFilePath fails
         //await Parallel.ForEachAsync(videoFiles, async (inputFile, cancellationToken) =>
         //
@@ -36,7 +34,7 @@ public class HandbrakeRunner
         {
             //var inpSize = new FileInfo(inputFile).Length;
             var outPutFile = inputFile.Replace(o.InputDir, o.TempOutDir);
-            FileHlp.EnsureDirStructure(outPutFile);
+            //FileHlp.EnsureDirStructure(outPutFile);
             string arguments = $"--preset-import-file \"{o.VideoPreset}\" -i \"{inputFile}\" -o \"{outPutFile}\"";
 
             await RunHandBrakeAsync(arguments, logFilePath, _sb);
@@ -50,8 +48,22 @@ public class HandbrakeRunner
                 //_sb.AppendLineAndConsole($"Processing: {idx++}/{cnt} - {shorterFilePath}");
                 _sb.AppendLineAndConsole($"Processing: {idx++}/{cnt} - {shorterFilePath}, before: {sizes.Input.ToMBStr()}, after: {sizes.Output.ToMBStr()}, diff: {sizes.Diff.ToMBStr()}");
                 _results.VideosProcessed++;
-                _results.ImagesTotalSizeBefore += sizes.Input;
-                _results.ImagesTotalSizeAfter += sizes.Output;
+                _results.VideosTotalSizeBefore += sizes.Input;
+                _results.VideosTotalSizeAfter += sizes.Output;
+
+                if (sizes.Output < sizes.Input)
+                {
+                    _results.VideosReplaced++;
+                    //File.Move(outPutFile, inputFile, true);
+                    if(!MyAppContext.Instance.IsTestMode)
+                        await FileHlp.ReplaceFileAsync(outPutFile, inputFile);
+                }
+                else
+                {
+                    _results.VideosBiggerAfter++;
+                    if(!MyAppContext.Instance.IsTestMode)
+                        File.Delete(outPutFile);
+                }
             }
         };
         

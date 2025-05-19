@@ -7,7 +7,7 @@ public class MagickImageBuilder : IDisposable
     private readonly MyStringBuilder _sb;
     private MagickImage _image;
     private string _ext;
-    string _outputPath;
+    //string _outputPath;
     private ConversionInfo _ci;
     private FileInfo _inpImg;
     private static readonly object _lock = new object();
@@ -16,8 +16,9 @@ public class MagickImageBuilder : IDisposable
     {
         _sb = sb;
         _image = new MagickImage(imagePath);
-        _outputPath = imagePath;
+        //_outputPath = imagePath;
         _inpImg = new FileInfo(imagePath);
+        _ext = _inpImg.Extension;
         _ci = new ConversionInfo() { FileName = _inpImg.Name, SizeBefore = _inpImg.Length };
     }
 
@@ -43,29 +44,22 @@ public class MagickImageBuilder : IDisposable
     {
         _image.Format = format;
         _image.Quality = (uint)quality;
-        _outputPath = _outputPath.Replace(_inpImg.Extension, $".{_image.Format.ToString().ToLower()}");
+        //_outputPath = _outputPath.Replace(_inpImg.Extension, $".{_image.Format.ToString().ToLower()}");
+        _ext = $".{_image.Format.ToString().ToLower()}";
         return this;
     }
 
-    public ConversionInfo Save(string toPath = null, bool deleteOrg = true)
+    public async Task<ConversionInfo> SaveAsync(string toPath, bool deleteOrg = true)
     {
-        if (toPath != null)
-            _outputPath = toPath;
+        toPath = toPath.Replace(_inpImg.Extension, _ext); //changing extension if we converted
         
-        _image.Write(_outputPath);
-        _ci.SizeAfter = new FileInfo(_outputPath).Length;
+        await _image.WriteAsync(toPath);
+        _ci.SizeAfter = new FileInfo(toPath).Length;
 
-        if (MyAppContext.Instance.IsTestMode)
-        {
-            _image.Dispose();
-            File.Delete(_outputPath);
-        }
-        else
-        {
-            if (deleteOrg)
-                _inpImg.Delete();
-        }
-       
+        _image.Dispose();
+        if (deleteOrg)
+            _inpImg.Delete();
+        
         return _ci;
     }
 

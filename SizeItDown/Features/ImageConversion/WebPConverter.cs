@@ -7,28 +7,34 @@ public class WebPConverter
 {
     List<ConversionInfo> _conversions = new();
     private long _deletedFileSize;
+    private readonly ConvResults _results;
     private MyStringBuilder sb;
     private static readonly object _lock = new object();
 
-    public WebPConverter(MyStringBuilder sb, long deletedFileSize)
+    public WebPConverter(ConvResults results, MyStringBuilder sb, long deletedFileSize)
     {
+        _results = results;
         this.sb = sb;
         _deletedFileSize = deletedFileSize;
     }
 
-    public ConvResults Convert(Options o, List<string> imagePaths)
+    public async Task<ConvResults> Convert(Options o, List<string> imagePaths)
     {
-        var results = new ConvResults();
         _conversions = new List<ConversionInfo>();
 
         int idx = 1;
         var cnt = imagePaths.Count();
-        Parallel.ForEach(imagePaths, path =>
+        Parallel.ForEach(imagePaths, async path =>
         {
+            var deleteOriginalImage = o.AutoReplace && !MyAppContext.Instance.IsTestMode;
+            var savePath = o.AutoReplace
+                ? path
+                : path.Replace(o.InputDir, o.TempOutDir);                
+            
             using var magick = new MagickImageBuilder(path, sb);
-            var ci = magick.Resize(o.ImageCropTo)
+            var ci = await magick.Resize(o.ImageCropTo)
                 .Convert(MagickFormat.WebP, o.ImageQuality)
-                .Save(null);
+                .SaveAsync(savePath, deleteOrg: deleteOriginalImage);
             
             var line = $"{idx}/{cnt}. Converted {ci.FileName}, size: {ci.SizeBefore.ToKBStr()} -> {ci.SizeAfter.ToKBStr()}, reduced: {ci.Reduction} KB ({ci.Percentage})";
             lock (_lock)
@@ -42,14 +48,14 @@ public class WebPConverter
                 
                 //keeping stats
                 if (ci.WasResized)
-                    results.ImagesFilesResizedCnt++;
-                results.ImagesFilesConvertedCnt++;
-                results.ImagesTotalSizeBefore += ci.SizeBefore;
-                results.ImagesTotalSizeAfter += ci.SizeAfter;
+                    _results.ImagesFilesResizedCnt++;
+                _results.ImagesFilesConvertedCnt++;
+                _results.ImagesTotalSizeBefore += ci.SizeBefore;
+                _results.ImagesTotalSizeAfter += ci.SizeAfter;
             }
         });
 
-        return results;
+        return _results;
     }
 
     public void DescribeConversionsResults()

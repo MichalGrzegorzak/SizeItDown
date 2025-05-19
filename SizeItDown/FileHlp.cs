@@ -14,6 +14,19 @@ public class FileHlp
         Console.WriteLine($"Wrote lines: {linesCount}");
     }
     
+    public static async Task ReplaceFileAsync(string sourceFilePath, string destinationFilePath)
+    {
+        // Copy the file asynchronously
+        await using (var sourceStream = new FileStream(sourceFilePath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, useAsync: true))
+        await using (var destinationStream = new FileStream(destinationFilePath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, useAsync: true))
+        {
+            await sourceStream.CopyToAsync(destinationStream);
+        }
+
+        // Optionally delete the source file
+        File.Delete(sourceFilePath);
+    }
+    
     public static void EnsureDirStructure(string filePath)
     {
         string directoryPath = Path.GetDirectoryName(filePath);

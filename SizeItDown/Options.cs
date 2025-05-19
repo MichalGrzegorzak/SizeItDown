@@ -12,13 +12,21 @@ public class Options
     
     [Option('i', "inputDir", Required = true, HelpText = "Input dir name")]
     public string InputDir { get; set; }
+
+    [Option('a', "autoReplace", Required = false, HelpText = "WARN - Still uses temp folder, but then will replace original files")]
+    public bool AutoReplace { get; set; }
     
+    [Option('v', "doVideos", Required = false, HelpText = "Do we convert images")]
+    public bool DoVideos { get; set; } = true;
+
+    [Option('g', "doImages", Required = false, HelpText = "Do we convert videos")]
+    public bool DoImages { get; set; } = true;
 
     
-    [Option('r', "replace", Required = false, HelpText = "Will replace files from output to input")]
-    public bool Replace { get; set; }
+    [Option('r', "manualReplace", Required = false, HelpText = "Call app again to replace original files, gives you safety and control")]
+    public bool ManualReplace { get; set; }
     
-    [Option('t', "test", Required = false, HelpText = "Will calculate, but will NOT replace files from output to input")]
+    [Option('t', "test", Required = false, HelpText = "Will calculate, saved files in temp, but will NOT replace files from output to input")]
     public bool TestMode { get; set; }
 
     [Option('m', "motionFiles", Required = false, HelpText = "Will rename MP files to .mp4, and delete .jpg motion file")]
