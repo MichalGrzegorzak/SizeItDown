@@ -42,7 +42,7 @@ public static class Hanbrake
         sb.AppendLine($"SET OUT=\"{o.TempOutDir}\"");
         sb.AppendLine($"SET VID_PRESET=\"{o.VideoPreset}\"");
         sb.AppendLine($"SET IMG_QUALITY={o.ImageQuality}");
-        sb.AppendLine($"SET IMG_CROP_TO={o.ImageCropTo}");
+        sb.AppendLine($"SET IMG_CROP_TO={o.ImageMaxWidth}");
         sb.AppendLine("@ECHO ON");
         sb.AppendLine("@ECHO !!! It will replace all the matching videos in INPUT, that it finds in OUT !!!");
         //rem -t = testmode

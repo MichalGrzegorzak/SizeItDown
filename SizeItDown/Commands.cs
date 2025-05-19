@@ -76,7 +76,7 @@ public static class Commands
             else
             {
                 sizes.Last().ResetDiff();
-                sb.AppendLineAndConsole($"Worse video compression, skipping file: {outputFilePath}, diff: {size.Diff} ");
+                sb.AppendLineAndConsole($"Size larger after compression, skipping file: {outputFilePath}, diff: {size.Diff} ");
                 //if (!o.TestMode)
                 {
                     File.Delete(outputFilePath);

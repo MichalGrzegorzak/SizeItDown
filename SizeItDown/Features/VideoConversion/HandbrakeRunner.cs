@@ -32,42 +32,43 @@ public class HandbrakeRunner
 
         foreach (var inputFile in videoFiles)
         {
-            //var inpSize = new FileInfo(inputFile).Length;
             var outPutFile = inputFile.Replace(o.InputDir, o.TempOutDir);
-            //FileHlp.EnsureDirStructure(outPutFile);
             string arguments = $"--preset-import-file \"{o.VideoPreset}\" -i \"{inputFile}\" -o \"{outPutFile}\"";
 
             await RunHandBrakeAsync(arguments, logFilePath, _sb);
             
             var shorterFilePath = inputFile.Replace(o.InputDir, "");
-            //var outSize = new FileInfo(outPutFile).Length;
             var sizes = new FileSizes(new FileInfo(inputFile), new FileInfo(outPutFile));
 
             //lock (writeLock)
             {
                 //_sb.AppendLineAndConsole($"Processing: {idx++}/{cnt} - {shorterFilePath}");
-                _sb.AppendLineAndConsole($"Processing: {idx++}/{cnt} - {shorterFilePath}, before: {sizes.Input.ToMBStr()}, after: {sizes.Output.ToMBStr()}, diff: {sizes.Diff.ToMBStr()}");
+                string biggerOrsmaller = sizes.Input > sizes.Output ? "smaller" : "larger";
+                _sb.AppendLineAndConsole($"Processing: {idx++}/{cnt} - {shorterFilePath}, before: {sizes.Input.ToMBStr()}, after: {sizes.Output.ToMBStr()}, result: {biggerOrsmaller}");
                 _results.VideosProcessed++;
                 _results.VideosTotalSizeBefore += sizes.Input;
                 _results.VideosTotalSizeAfter += sizes.Output;
 
                 if (sizes.Output < sizes.Input)
                 {
-                    _results.VideosReplaced++;
                     //File.Move(outPutFile, inputFile, true);
-                    if(!MyAppContext.Instance.IsTestMode)
+                    if (o.AutoReplace && !MyAppContext.Instance.IsTestMode)
+                    {
+                        _results.VideosReplaced++;
                         await FileHlp.ReplaceFileAsync(outPutFile, inputFile);
+                    }
+                       
                 }
                 else
                 {
                     _results.VideosBiggerAfter++;
-                    if(!MyAppContext.Instance.IsTestMode)
+                    if(o.AutoReplace && !MyAppContext.Instance.IsTestMode)
                         File.Delete(outPutFile);
                 }
             }
         };
         
-        _sb.AppendLineAndConsole($"All jobs completed.");
+        _sb.AppendLineAndConsole($"\nAll jobs completed.");
         return _results;
     }
 

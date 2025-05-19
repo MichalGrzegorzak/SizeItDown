@@ -12,7 +12,7 @@ public class WebPGenerator
         sb.AppendLine("");
         sb.AppendLine($"SET INPUT=\"{o.InputDir}\"");
         sb.AppendLine($"SET IMG_QUALITY={o.ImageQuality}");
-        sb.AppendLine($"SET IMG_CROP_TO={o.ImageCropTo}");
+        sb.AppendLine($"SET IMG_CROP_TO={o.ImageMaxWidth}");
         sb.AppendLine("""SET CLI=HandBrakeCLI --preset-import-file "%PRESET%""");
         sb.AppendLine("");
         

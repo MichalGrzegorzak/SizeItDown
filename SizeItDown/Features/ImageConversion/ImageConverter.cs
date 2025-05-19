@@ -3,7 +3,7 @@ using ImageMagick;
 
 namespace SizeItDown.Generators;
 
-public class WebPConverter
+public class ImageConverter
 {
     List<ConversionInfo> _conversions = new();
     private long _deletedFileSize;
@@ -11,7 +11,7 @@ public class WebPConverter
     private MyStringBuilder sb;
     private static readonly object _lock = new object();
 
-    public WebPConverter(ConvResults results, MyStringBuilder sb, long deletedFileSize)
+    public ImageConverter(ConvResults results, MyStringBuilder sb, long deletedFileSize)
     {
         _results = results;
         this.sb = sb;
@@ -26,14 +26,16 @@ public class WebPConverter
         var cnt = imagePaths.Count();
         Parallel.ForEach(imagePaths, async path =>
         {
+            var imgFormat = o.ImageConvTo.ToLower() == "webp" ? MagickFormat.WebP : MagickFormat.Avif;
+            
             var deleteOriginalImage = o.AutoReplace && !MyAppContext.Instance.IsTestMode;
             var savePath = o.AutoReplace
                 ? path
                 : path.Replace(o.InputDir, o.TempOutDir);                
             
             using var magick = new MagickImageBuilder(path, sb);
-            var ci = await magick.Resize(o.ImageCropTo)
-                .Convert(MagickFormat.WebP, o.ImageQuality)
+            var ci = await magick.Resize(o.ImageMaxWidth)
+                .Convert(imgFormat, o.ImageQuality)
                 .SaveAsync(savePath, deleteOrg: deleteOriginalImage);
             
             var line = $"{idx}/{cnt}. Converted {ci.FileName}, size: {ci.SizeBefore.ToKBStr()} -> {ci.SizeAfter.ToKBStr()}, reduced: {ci.Reduction} KB ({ci.Percentage})";
@@ -66,10 +68,10 @@ public class WebPConverter
         var percent = before.PercentChange(after)*-1;
         
         sb.AppendLine("=============================");
-        sb.AppendLine("Total size before: " + before.ToKBStr());
-        sb.AppendLine("Total size after: " + after.ToKBStr());
-        sb.AppendLine($"Total size deleted: {_deletedFileSize.ToKBStr()}");
-        sb.AppendLine($"Total size reduction: {reduction.ToKBStr()}, perc: ({percent:F1})");
+        sb.AppendLine("Total size before: " + before.ToMBStr());
+        sb.AppendLine("Total size after: " + after.ToMBStr());
+        sb.AppendLine($"Total size deleted: {_deletedFileSize.ToMBStr()}");
+        sb.AppendLine($"Total size reduction: {reduction.ToMBStr()}, perc: ({percent:F1}%)");
         sb.AppendLine("==============================");
     }
 }

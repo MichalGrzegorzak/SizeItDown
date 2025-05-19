@@ -19,10 +19,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Features\Core\" />
-    </ItemGroup>
-
-    <ItemGroup>
       <None Remove="Resources\compress2.py" />
     </ItemGroup>
 
@@ -32,6 +28,10 @@
 
     <ItemGroup>
       <EmbeddedResource Include="Resources\HandbrakeVideoPreset.json" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <EmbeddedResource Include="Resources\start_conversion.bat" />
     </ItemGroup>
 
 </Project>

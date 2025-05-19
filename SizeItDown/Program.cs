@@ -4,6 +4,8 @@ using Ardalis.GuardClauses;
 using CommandLine;
 using SizeItDown.Generators;
 
+FileHlp.SaveResourceFileOnDisk("start_conversion.bat");
+
 await Parser.Default.ParseArguments<Options>(args)
     .WithParsedAsync<Options>(Start);
 
@@ -16,7 +18,7 @@ async Task Start(Options o)
     Console.WriteLine("Started..");
     var stopwatch = Stopwatch.StartNew();
     MyAppContext.Instance.IsTestMode = o.TestMode;
-    
+
     FileHlp.SaveResourceFileOnDisk("HandbrakeVideoPreset.json");
     
     bool cliExists = File.Exists("./HandbrakeCLI.exe");
@@ -39,39 +41,40 @@ async Task Start(Options o)
     var mediaFiles = allFilesList
         .Where(x => Const.AllExtensions.Contains(Path.GetExtension(x), StringComparer.OrdinalIgnoreCase))
         .ToList();
-
-    // DIRECTORIES - creating dir structure in temp folder 
-    foreach (var inputFile in allFilesList)
+    
+    //need to remove all motion files
+    var deleted = mediaFiles.RemoveAll(x => Path.GetExtension(x).Equals(".mp", StringComparison.CurrentCultureIgnoreCase));
+    var videoFiles = mediaFiles.Where(x => Const.VideoExtensions.Contains(Path.GetExtension(x), StringComparer.OrdinalIgnoreCase)).ToList();
+    
+    var sb = new MyStringBuilder($"{o.InputDir}\\imagesConversionLog_{timestamp}.txt");
+    if (o.ReplaceMode)
     {
-        var outPutFile = inputFile.Replace(o.InputDir, o.TempOutDir);
-        FileHlp.EnsureDirStructure(outPutFile);
+        Console.WriteLine("Mode: Big replacement");
+        sb = new MyStringBuilder($"{o.InputDir}\\replacementLog_{timestamp}.txt");
+        Commands.Replace(o, mediaFiles, sb);
     }
 
     long deletedMotionFilesSize = o.CleanMotionFiles
         ? Commands.CleanMotionFiles(o, mediaFiles)
         : 0;
     
-    var sb = new MyStringBuilder($"{o.InputDir}\\imagesConversionLog_{timestamp}.txt");
-
-    //need to remove all motion files
-    allFilesList = null;
-    var deleted = mediaFiles.RemoveAll(x => Path.GetExtension(x).Equals(".mp", StringComparison.CurrentCultureIgnoreCase));
-    var videoFiles = mediaFiles.Where(x => Const.VideoExtensions.Contains(Path.GetExtension(x), StringComparer.OrdinalIgnoreCase)).ToList();
-
-    if (o.List)
+    if (o.ListMode)
     {
         Console.WriteLine("Mode: List");
         Commands.List(o, mediaFiles);
     }
-    else if (o.ManualReplace)
-    {
-        Console.WriteLine("Mode: ManualReplace");
-        sb = new MyStringBuilder($"{o.InputDir}\\replacementLog_{timestamp}.txt");
-        Commands.Replace(o, videoFiles, sb);
-    }
     else
     {
         Console.WriteLine("Mode: Conversion");
+        
+        // DIRECTORIES - creating dir structure in temp folder 
+        foreach (var inputFile in allFilesList)
+        {
+            var outPutFile = inputFile.Replace(o.InputDir, o.TempOutDir);
+            FileHlp.EnsureDirStructure(outPutFile);
+        }
+        allFilesList = null; //clears some mem if many files
+        
         //SaveResourceFileOnDisk("cropAndconvertImagesToWebP.py");
         double imagesConvertedIn = 0;
         var results = new ConvResults();
@@ -80,19 +83,20 @@ async Task Start(Options o)
         //WebPGenerator.Generate(o, deletedFileSize);
         if (o.DoImages)
         {
+            Console.WriteLine("Images conversion started");
             var imageFiles = mediaFiles.Where(x => Const.ImagesExtensions.Contains(Path.GetExtension(x), StringComparer.OrdinalIgnoreCase)).ToList();
-            var webPConverter = new WebPConverter(results, sb, deletedMotionFilesSize);
+            var webPConverter = new ImageConverter(results, sb, deletedMotionFilesSize);
             results = await webPConverter.Convert(o, imageFiles);
             webPConverter.DescribeConversionsResults();
             sb.AppendToFile();
             imagesConvertedIn = stopwatch.Elapsed.TotalSeconds;
         }
-        
 
         // VIDEOS
         //Hanbrake.Generate(o, videoFiles);
         if (o.DoVideos)
         {
+            Console.WriteLine("Videos conversion started");
             sb = new MyStringBuilder($"{o.InputDir}\\videosConversionLog_{timestamp}.txt");
             var runner = new HandbrakeRunner(results, sb);
             results = await runner.Run(o, videoFiles);

@@ -7,7 +7,6 @@ public class MagickImageBuilder : IDisposable
     private readonly MyStringBuilder _sb;
     private MagickImage _image;
     private string _ext;
-    //string _outputPath;
     private ConversionInfo _ci;
     private FileInfo _inpImg;
     private static readonly object _lock = new object();
@@ -16,7 +15,6 @@ public class MagickImageBuilder : IDisposable
     {
         _sb = sb;
         _image = new MagickImage(imagePath);
-        //_outputPath = imagePath;
         _inpImg = new FileInfo(imagePath);
         _ext = _inpImg.Extension;
         _ci = new ConversionInfo() { FileName = _inpImg.Name, SizeBefore = _inpImg.Length };
@@ -44,7 +42,6 @@ public class MagickImageBuilder : IDisposable
     {
         _image.Format = format;
         _image.Quality = (uint)quality;
-        //_outputPath = _outputPath.Replace(_inpImg.Extension, $".{_image.Format.ToString().ToLower()}");
         _ext = $".{_image.Format.ToString().ToLower()}";
         return this;
     }
