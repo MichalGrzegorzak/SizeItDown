@@ -33,7 +33,7 @@ public static class Commands
     public static void Replace(Options o, List<string> inputVideoFiles, MyStringBuilder sb)
     {
         var outputVideoFiles = Const.VideoExtensions.SelectMany(ext => 
-            Directory.EnumerateFiles(o.OutputDir, $"*{ext}", SearchOption.AllDirectories)).ToList();
+            Directory.EnumerateFiles(o.TempOutDir, $"*{ext}", SearchOption.AllDirectories)).ToList();
         
         var matchingNames = inputVideoFiles.Select(Path.GetFileName)
             .Intersect(outputVideoFiles.Select(Path.GetFileName))
@@ -50,8 +50,8 @@ public static class Commands
                 continue; //skip fast
             }
             
-            var partialInputFilePath = inputFilePath.Replace(o.InputDir, "");
-            var outputFilePath = outputVideoFiles.First(path => path.Contains(partialInputFilePath));
+            var shortInpFilePath = inputFilePath.Replace(o.InputDir, "");
+            var outputFilePath = outputVideoFiles.First(path => path.Contains(shortInpFilePath));
 
             if (string.IsNullOrEmpty(outputFilePath))
             {
@@ -70,7 +70,7 @@ public static class Commands
                     File.Move(outputFilePath, inputFilePath, true);
                 }
                 var percent = size.Input.PercentChange(size.Output)*-1;
-                sb.AppendLineAndConsole($"Replaced file: {inputFilePath}, sizes: {size.Input.ToKBStr()} -> {size.Output.ToKBStr()}, red: {size.Diff.ToKBStr()} ({percent}%)");
+                sb.AppendLineAndConsole($"Replaced file: {shortInpFilePath}, sizes: {size.Input.ToKBStr()} -> {size.Output.ToKBStr()}, red: {size.Diff.ToKBStr()} ({percent}%)");
                 sb.AppendLine(size.ToString());
             }
             else
@@ -101,7 +101,7 @@ public static class Commands
         foreach (var directory in dirsToDelete)
         {
             var dirInfo = new DirectoryInfo(directory);
-            if (!dirInfo.Exists || directory == o.OutputDir)
+            if (!dirInfo.Exists || directory == o.TempOutDir)
                 continue;
             
             var empty =  !dirInfo.EnumerateFiles().Any();
@@ -120,7 +120,7 @@ public static class Commands
         }
 
         //deleting empty
-        foreach (var dirInfo in new DirectoryInfo(o.OutputDir).GetDirectories())
+        foreach (var dirInfo in new DirectoryInfo(o.TempOutDir).GetDirectories())
         {
             var empty =  !dirInfo.EnumerateFiles().Any();
             if (empty)

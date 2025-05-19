@@ -1,4 +1,5 @@
-﻿using ImageMagick;
+﻿using System.Diagnostics;
+using ImageMagick;
 
 namespace SizeItDown.Generators;
 
@@ -15,8 +16,9 @@ public class WebPConverter
         _deletedFileSize = deletedFileSize;
     }
 
-    public void Convert(Options o, List<string> imagePaths)
+    public ConvResults Convert(Options o, List<string> imagePaths)
     {
+        var results = new ConvResults();
         _conversions = new List<ConversionInfo>();
 
         int idx = 1;
@@ -34,8 +36,20 @@ public class WebPConverter
                 _conversions.Add(ci);
                 sb.AppendLineAndConsole(line);
                 idx++;
+                
+                if(ci.SizeAfter > ci.SizeBefore)
+                    Debugger.Break();
+                
+                //keeping stats
+                if (ci.WasResized)
+                    results.ImagesFilesResizedCnt++;
+                results.ImagesFilesConvertedCnt++;
+                results.ImagesTotalSizeBefore += ci.SizeBefore;
+                results.ImagesTotalSizeAfter += ci.SizeAfter;
             }
         });
+
+        return results;
     }
 
     public void DescribeConversionsResults()

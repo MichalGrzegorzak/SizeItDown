@@ -5,6 +5,7 @@ public static class LongExtensions
     public static decimal ToKB(this long input) => Math.Round((decimal)input / 1024, 1);
     public static decimal ToMB(this long input) => Math.Round((decimal)input / (1024*1024), 1);
     public static string ToKBStr(this long input) => input.ToKB().ToString("F1") + " KB";
+    public static string ToMBStr(this long input) => input.ToMB().ToString("F1") + " MB";
     
     // public static decimal ToUnivSize(this long input)
     // {

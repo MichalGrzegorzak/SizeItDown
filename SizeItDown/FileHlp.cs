@@ -28,11 +28,13 @@ public class FileHlp
     {
         var resourceName = $"SizeItDown.Resources.{fileName}";
         var outputPath = Path.Combine(Directory.GetCurrentDirectory(), fileName);
+        if (Path.Exists(outputPath))
+            return;
 
         using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName);
         if (stream == null)
             throw new ApplicationException($"Resource not found: {fileName}");
-
+        
         using var fileStream = new FileStream(outputPath, FileMode.Create, FileAccess.Write);
         stream.CopyTo(fileStream);
 

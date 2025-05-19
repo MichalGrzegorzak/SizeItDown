@@ -23,14 +23,19 @@ public class MagickImageBuilder : IDisposable
 
     public MagickImageBuilder Resize(int maxWidth)
     {
+        if (_image.Width <= maxWidth)
+            return this;
+        
         // Calculate new height to maintain aspect ratio
         int newHeight = (int)((double)maxWidth / _image.Width * _image.Height);
+        
         lock (_lock)
         {
             _sb.AppendLineAndConsole($"Resizing from: {_image.Width}x{_image.Height} to {maxWidth}x{newHeight}.");
         }
 
         _image.Resize((uint)maxWidth, (uint)newHeight);
+        _ci.WasResized = true;
         return this;
     }
 
@@ -50,7 +55,7 @@ public class MagickImageBuilder : IDisposable
         _image.Write(_outputPath);
         _ci.SizeAfter = new FileInfo(_outputPath).Length;
 
-        if (MyContext.Instance.IsTestMode)
+        if (MyAppContext.Instance.IsTestMode)
         {
             _image.Dispose();
             File.Delete(_outputPath);

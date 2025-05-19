@@ -24,11 +24,11 @@ public class Options
     [Option('m', "motionFiles", Required = false, HelpText = "Will rename MP files to .mp4, and delete .jpg motion file")]
     public bool CleanMotionFiles { get; set; } = false;
 
-    [Option('o', "outputDir", Required = false, HelpText = "Temporary Output dir name")]
-    public string OutputDir { get; set; } = @"D:\Conversion\TEMP";
+    [Option('o', "tempOutputDir", Required = false, HelpText = "Temporary Output dir name")]
+    public string TempOutDir { get; set; } = @"D:\Conversion\TEMP";
 
     [Option('p', "VideoPreset", Required = false, HelpText = "HandBrake Video Preset name")]
-    public string VideoPreset { get; set; } = "myPreset.json";
+    public string VideoPreset { get; set; } = "HandbrakeVideoPreset.json";
     
     [Option('l', "list", Required = false, HelpText = "Just list files")]
     public bool List { get; set; }

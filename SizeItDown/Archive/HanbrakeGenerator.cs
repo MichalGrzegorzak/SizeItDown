@@ -20,7 +20,7 @@ public static class Hanbrake
 
         foreach (var file in videoFiles)
         {
-            var target = file.Replace(o.InputDir, o.OutputDir);
+            var target = file.Replace(o.InputDir, o.TempOutDir);
             var shorterFilePath = file.Replace(o.InputDir, "");
             sb.AppendLine($"@ECHO File: {idx++}/{cnt} - {shorterFilePath}");
 
@@ -39,7 +39,7 @@ public static class Hanbrake
         var sb = new StringBuilder();
         sb.AppendLine("@ECHO OFF");
         sb.AppendLine($"SET INPUT=\"{o.InputDir}\"");
-        sb.AppendLine($"SET OUT=\"{o.OutputDir}\"");
+        sb.AppendLine($"SET OUT=\"{o.TempOutDir}\"");
         sb.AppendLine($"SET VID_PRESET=\"{o.VideoPreset}\"");
         sb.AppendLine($"SET IMG_QUALITY={o.ImageQuality}");
         sb.AppendLine($"SET IMG_CROP_TO={o.ImageCropTo}");

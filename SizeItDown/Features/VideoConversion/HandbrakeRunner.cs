@@ -1,37 +1,62 @@
 ﻿using System.Diagnostics;
+using Ardalis.GuardClauses;
 
 namespace SizeItDown.Generators;
 
 public class HandbrakeRunner
 {
+    private readonly MyStringBuilder _sb;
+    private readonly ConvResults _results;
     object writeLock = new object();
 
-    public async Task Run(Options o, List<string> videoFiles, MyStringBuilder sb)
+    public HandbrakeRunner(MyStringBuilder sb, ConvResults results)
+    {
+        _sb = sb;
+        _results = results;
+    }
+    public async Task<ConvResults> Run(Options o, List<string> videoFiles)
     {
         string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmm");
         string logFilePath = $"handbrake_log_{timestamp}.txt";
+        
+        var cnt = videoFiles.Count();
+        _results.VideosCount = cnt;
+        _sb.AppendLineAndConsole($"\nStarting video conversion, files count: {cnt}");
+        _sb.AppendLineAndConsole($"\nUsing Handbrake video preset: {o.VideoPreset}");
+        _sb.AppendLineAndConsole($"Handbrake logs in: {logFilePath}\n");
+
+
 
         //aquiring logFilePath fails
         //await Parallel.ForEachAsync(videoFiles, async (inputFile, cancellationToken) =>
         //
         int idx = 1;
-        var cnt = videoFiles.Count();
+
         foreach (var inputFile in videoFiles)
         {
-            var outPutFile = inputFile.Replace(o.InputDir, o.OutputDir);
+            //var inpSize = new FileInfo(inputFile).Length;
+            var outPutFile = inputFile.Replace(o.InputDir, o.TempOutDir);
             FileHlp.EnsureDirStructure(outPutFile);
             string arguments = $"--preset-import-file \"{o.VideoPreset}\" -i \"{inputFile}\" -o \"{outPutFile}\"";
 
+            await RunHandBrakeAsync(arguments, logFilePath, _sb);
+            
             var shorterFilePath = inputFile.Replace(o.InputDir, "");
+            //var outSize = new FileInfo(outPutFile).Length;
+            var sizes = new FileSizes(new FileInfo(inputFile), new FileInfo(outPutFile));
+
             //lock (writeLock)
             {
-                sb.AppendLineAndConsole($"Processing: {idx++}/{cnt} - {shorterFilePath}");
+                //_sb.AppendLineAndConsole($"Processing: {idx++}/{cnt} - {shorterFilePath}");
+                _sb.AppendLineAndConsole($"Processing: {idx++}/{cnt} - {shorterFilePath}, before: {sizes.Input.ToMBStr()}, after: {sizes.Output.ToMBStr()}, diff: {sizes.Diff.ToMBStr()}");
+                _results.VideosProcessed++;
+                _results.ImagesTotalSizeBefore += sizes.Input;
+                _results.ImagesTotalSizeAfter += sizes.Output;
             }
-
-            await RunHandBrakeAsync(arguments, logFilePath, sb);
         };
         
-        sb.AppendLineAndConsole($"All jobs completed.");
+        _sb.AppendLineAndConsole($"All jobs completed.");
+        return _results;
     }
 
     async Task RunHandBrakeAsync(string arguments, string logFilePath, MyStringBuilder sb)
@@ -52,25 +77,26 @@ public class HandbrakeRunner
         await using StreamWriter logWriter = new StreamWriter(logFilePath, append: true);
         await logWriter.WriteLineAsync($"\n[{DateTime.Now}] Running: HandBrakeCLI.exe {arguments}");
 
+        bool encodingStarted = false;
+
         process.OutputDataReceived += async (s, e) =>
         {
-            if (e.Data != null)
+            if (e.Data == null || string.IsNullOrEmpty(e.Data)) 
+                return;
+            
+            lock (writeLock)
             {
-                lock (writeLock)
-                {
-                    logWriter.WriteLine(e.Data);
-                }
+                logWriter.WriteLine(e.Data);
+                if (!encodingStarted && e.Data.StartsWith("Encoding: task"))
+                    encodingStarted = true;
             }
         };
         process.ErrorDataReceived += async (s, e) =>
         {
-            if (e.Data != null)
-            {
-                lock (writeLock)
-                {
-                    logWriter.WriteLine("[ERROR] " + e.Data);
-                }
-            }
+            if (e.Data == null) 
+                return;
+            lock (writeLock)
+                logWriter.WriteLine("[ERROR] " + e.Data);
         };
 
         process.Start();
@@ -79,6 +105,15 @@ public class HandbrakeRunner
 
         await process.WaitForExitAsync();
         await logWriter.WriteLineAsync($"[Exit Code: {process.ExitCode}]\n");
+
+        if (!encodingStarted)
+        {
+            lock (writeLock)
+            {
+                _results.VideosFailed++;
+                Debugger.Break();
+            }
+        }
     }
 
     
