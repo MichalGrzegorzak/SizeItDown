@@ -1,8 +1,6 @@
 ﻿using System.Diagnostics;
-using Ardalis.GuardClauses;
 using SizeItDown.Features.Core;
 using Xabe.FFmpeg;
-using Xabe.FFmpeg.Downloader;
 
 namespace SizeItDown.Generators;
 
