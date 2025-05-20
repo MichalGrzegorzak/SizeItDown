@@ -24,7 +24,9 @@ public class ImageConverter
 
         int idx = 1;
         var cnt = imagePaths.Count();
-        Parallel.ForEach(imagePaths, async path =>
+        var processors = Environment.ProcessorCount /2;
+        
+        await Parallel.ForEachAsync(imagePaths, new ParallelOptions { MaxDegreeOfParallelism = processors }, async (path, _) =>
         {
             var imgFormat = o.ImageConvTo.ToLower() == "webp" ? MagickFormat.WebP : MagickFormat.Avif;
             

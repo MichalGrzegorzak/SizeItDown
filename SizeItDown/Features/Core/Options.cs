@@ -14,10 +14,10 @@ public class Options
     public bool AutoReplace { get; set; }
     
     [Option('v', "doVideos", Required = false, HelpText = "Do we convert images")]
-    public bool DoVideos { get; set; } = true;
+    public bool DoVideos { get; set; }
 
     [Option('g', "doImages", Required = false, HelpText = "Do we convert videos")]
-    public bool DoImages { get; set; } = true;
+    public bool DoImages { get; set; }
     
     [Option('r', "replaceMode", Required = false, HelpText = "Call app second time to replace files in TempOutDir, gives you safety and control")]
     public bool ReplaceMode { get; set; }

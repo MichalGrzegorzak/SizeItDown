@@ -25,7 +25,7 @@ public class HandbrakeRunner
         _sb.AppendLineAndConsole($"\nUsing Handbrake video preset: {o.VideoPreset}");
         _sb.AppendLineAndConsole($"Handbrake logs in: {logFilePath}\n");
 
-        //aquiring logFilePath fails
+        //acquiring logFilePath fails
         //await Parallel.ForEachAsync(videoFiles, async (inputFile, cancellationToken) =>
         //
         int idx = 1;
@@ -36,28 +36,35 @@ public class HandbrakeRunner
             string arguments = $"--preset-import-file \"{o.VideoPreset}\" -i \"{inputFile}\" -o \"{outPutFile}\"";
 
             await RunHandBrakeAsync(arguments, logFilePath, _sb);
-            
+
             var shorterFilePath = inputFile.Replace(o.InputDir, "");
-            var sizes = new FileSizes(new FileInfo(inputFile), new FileInfo(outPutFile));
+            var outputFileInfo = new FileInfo(outPutFile);
+            if (!outputFileInfo.Exists)
+            {
+                _results.VideosFailed++;
+                _sb.AppendLineAndConsole($"Video processing: {idx++}/{cnt} - {shorterFilePath} - FAILED, skipping it.");
+                continue;
+            }
+           
+            var sizes = new FileSizes(new FileInfo(inputFile), outputFileInfo);
 
             //lock (writeLock)
             {
                 //_sb.AppendLineAndConsole($"Processing: {idx++}/{cnt} - {shorterFilePath}");
                 string biggerOrsmaller = sizes.Input > sizes.Output ? "smaller" : "larger";
-                _sb.AppendLineAndConsole($"Processing: {idx++}/{cnt} - {shorterFilePath}, before: {sizes.Input.ToMBStr()}, after: {sizes.Output.ToMBStr()}, result: {biggerOrsmaller}");
+                _sb.AppendLineAndConsole($"Video processing: {idx++}/{cnt} - {shorterFilePath}, before: {sizes.Input.ToMBStr()}, after: {sizes.Output.ToMBStr()}, result: {biggerOrsmaller}");
                 _results.VideosProcessed++;
                 _results.VideosTotalSizeBefore += sizes.Input;
                 _results.VideosTotalSizeAfter += sizes.Output;
 
                 if (sizes.Output < sizes.Input)
                 {
-                    //File.Move(outPutFile, inputFile, true);
                     if (o.AutoReplace && !MyAppContext.Instance.IsTestMode)
                     {
                         _results.VideosReplaced++;
                         await FileHlp.ReplaceFileAsync(outPutFile, inputFile);
+                        //File.Move(outPutFile, inputFile, true);
                     }
-                       
                 }
                 else
                 {
@@ -68,7 +75,7 @@ public class HandbrakeRunner
             }
         };
         
-        _sb.AppendLineAndConsole($"\nAll jobs completed.");
+        _sb.AppendLineAndConsole($"\nAll video jobs completed.");
         return _results;
     }
 
@@ -90,19 +97,13 @@ public class HandbrakeRunner
         await using StreamWriter logWriter = new StreamWriter(logFilePath, append: true);
         await logWriter.WriteLineAsync($"\n[{DateTime.Now}] Running: HandBrakeCLI.exe {arguments}");
 
-        bool encodingStarted = false;
-
         process.OutputDataReceived += async (s, e) =>
         {
             if (e.Data == null || string.IsNullOrEmpty(e.Data)) 
                 return;
             
             lock (writeLock)
-            {
                 logWriter.WriteLine(e.Data);
-                if (!encodingStarted && e.Data.StartsWith("Encoding: task"))
-                    encodingStarted = true;
-            }
         };
         process.ErrorDataReceived += async (s, e) =>
         {
@@ -118,16 +119,5 @@ public class HandbrakeRunner
 
         await process.WaitForExitAsync();
         await logWriter.WriteLineAsync($"[Exit Code: {process.ExitCode}]\n");
-
-        if (!encodingStarted)
-        {
-            lock (writeLock)
-            {
-                _results.VideosFailed++;
-                Debugger.Break();
-            }
-        }
     }
-
-    
 }

@@ -53,7 +53,6 @@ public class MagickImageBuilder : IDisposable
         await _image.WriteAsync(toPath);
         _ci.SizeAfter = new FileInfo(toPath).Length;
 
-        _image.Dispose();
         if (deleteOrg)
             _inpImg.Delete();
         
