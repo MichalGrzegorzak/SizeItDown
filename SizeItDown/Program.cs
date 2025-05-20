@@ -22,7 +22,7 @@ async Task Start(Options o)
     Console.WriteLine("Started..");
     
     //don't really need it, experimenting with reading bitrate
-    await FFmpegDownloader.GetLatestVersion(FFmpegVersion.Official);
+    // await FFmpegDownloader.GetLatestVersion(FFmpegVersion.Official);
     FFmpeg.SetExecutablesPath(".");
     
     var stopwatch = Stopwatch.StartNew();
@@ -155,6 +155,7 @@ async Task Start(Options o)
             sb.AppendLineAndConsole($"====================================================");
             sb.AppendLineAndConsole($"Videos found: {results.VideosCount}");
             sb.AppendLineAndConsole($"Videos failed: {results.VideosFailed}");
+            sb.AppendLineAndConsole($"Videos bad file: {results.VideosBadFile}");
             sb.AppendLineAndConsole($"Videos replaced: {results.VideosReplaced}");
             sb.AppendLineAndConsole($"Videos larger after: {results.VideosBiggerAfter}");
             
