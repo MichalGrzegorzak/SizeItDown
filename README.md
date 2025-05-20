@@ -17,3 +17,7 @@ but you can create your own preset and export it
 3. HandbrakeCLI.exe needs to be in same folder as this app
 
 
+TODO: 
+1. Replace mode now only works for video files, should do both
+
+

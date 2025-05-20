@@ -4,6 +4,7 @@ using Ardalis.GuardClauses;
 using CommandLine;
 using SizeItDown.Generators;
 
+// first run will add it for you
 FileHlp.SaveResourceFileOnDisk("start_conversion.bat");
 
 await Parser.Default.ParseArguments<Options>(args)
@@ -19,33 +20,28 @@ async Task Start(Options o)
     var stopwatch = Stopwatch.StartNew();
     MyAppContext.Instance.IsTestMode = o.TestMode;
 
+    //adding default video preset, but you should use your own
     FileHlp.SaveResourceFileOnDisk("HandbrakeVideoPreset.json");
-    
-    bool cliExists = File.Exists("./HandbrakeCLI.exe");
-    bool presetExists = File.Exists("./HandbrakeVideoPreset.json");
-    Guard.Against.Default(cliExists, null, "HandbrakeCLI.exe not found. You need to download it, and place beside this app.");
-    Guard.Against.Default(presetExists, null, "HandbrakeVideoPreset.json not found");
+
+    Guard.Against.Default(File.Exists("./HandbrakeCLI.exe"), null, "HandbrakeCLI.exe not found. You need to download it, and place beside this app.");
+    //Guard.Against.Default( File.Exists("./HandbrakeVideoPreset.json"), null, "HandbrakeVideoPreset.json not found");
 
     if (!Directory.Exists(o.InputDir))
         throw new DirectoryNotFoundException(o.InputDir);
     if (!Directory.Exists(o.TempOutDir))
         o.TempOutDir = Path.GetTempPath();
-    
+
     string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmm");
     o.TempOutDir = Path.Combine(o.TempOutDir, timestamp);
     Directory.CreateDirectory(o.TempOutDir);
-    
+
     var allFilesList = Directory.EnumerateFiles(o.InputDir, "*.*", SearchOption.AllDirectories).ToList();
     var inputFolderSize1 = allFilesList.Sum(x => new FileInfo(x).Length);
-    
+
     var mediaFiles = allFilesList
         .Where(x => Const.AllExtensions.Contains(Path.GetExtension(x), StringComparer.OrdinalIgnoreCase))
         .ToList();
-    
-    //need to remove all motion files
-    var deleted = mediaFiles.RemoveAll(x => Path.GetExtension(x).Equals(".mp", StringComparison.CurrentCultureIgnoreCase));
-    var videoFiles = mediaFiles.Where(x => Const.VideoExtensions.Contains(Path.GetExtension(x), StringComparer.OrdinalIgnoreCase)).ToList();
-    
+
     var sb = new MyStringBuilder($"{o.InputDir}\\imagesConversionLog_{timestamp}.txt");
     if (o.ReplaceMode)
     {
@@ -54,10 +50,15 @@ async Task Start(Options o)
         Commands.Replace(o, mediaFiles, sb);
     }
 
-    long deletedMotionFilesSize = o.CleanMotionFiles
+    // Motion files handling, it will rename them to videos (mp4), which will be later converted.
+    // Question is do you want to get rid of them or not ?
+    long deletedMotionFilesSize = 0;
+    deletedMotionFilesSize = o.CleanMotionFiles
         ? Commands.CleanMotionFiles(o, mediaFiles)
         : 0;
-    
+    //remove all motion files as no longer needed
+    var deleted = mediaFiles.RemoveAll(x => Path.GetExtension(x).Equals(".mp", StringComparison.CurrentCultureIgnoreCase));
+
     if (o.ListMode)
     {
         Console.WriteLine("Mode: List");
@@ -66,15 +67,16 @@ async Task Start(Options o)
     else
     {
         Console.WriteLine("Mode: Conversion");
-        
+
         // DIRECTORIES - creating dir structure in temp folder 
         foreach (var inputFile in allFilesList)
         {
             var outPutFile = inputFile.Replace(o.InputDir, o.TempOutDir);
             FileHlp.EnsureDirStructure(outPutFile);
         }
+
         allFilesList = null; //clears some mem if many files
-        
+
         //SaveResourceFileOnDisk("cropAndconvertImagesToWebP.py");
         double imagesConvertedIn = 0;
         var results = new ConvResults();
@@ -93,6 +95,8 @@ async Task Start(Options o)
         }
 
         // VIDEOS
+        var videoFiles = mediaFiles.Where(x => Const.VideoExtensions.Contains(Path.GetExtension(x), StringComparer.OrdinalIgnoreCase)).ToList();
+
         //Hanbrake.Generate(o, videoFiles);
         if (o.DoVideos)
         {
@@ -114,7 +118,7 @@ async Task Start(Options o)
 
         allFilesList = Directory.EnumerateFiles(o.InputDir, "*.*", SearchOption.AllDirectories).ToList();
         var inputFolderSize2 = allFilesList.Sum(x => new FileInfo(x).Length);
-        
+
         sb = new MyStringBuilder($"{o.InputDir}\\summaryLog_{timestamp}.txt");
         if (o.DoImages)
         {
@@ -138,16 +142,16 @@ async Task Start(Options o)
             sb.AppendLineAndConsole($"====================================================");
         }
 
-        if (o.AutoReplace)
+        if (o.ReplaceMode || o.AutoReplace)
         {
             //sb.AppendLineAndConsole($"Folder size at START: {results.ImagesTotalSizeBefore.ToMBStr()}");
-            sb.AppendLineAndConsole($"Folder size at START: {inputFolderSize1.ToMBStr()}");
-            sb.AppendLineAndConsole($"Folder size at END  : {inputFolderSize2.ToMBStr()}");
-            sb.AppendLineAndConsole($"Saved : {(inputFolderSize1 - inputFolderSize2).ToMBStr()}");
+            sb.AppendLineAndConsole($"Folder size BEFORE: {inputFolderSize1.ToMBStr()}");
+            sb.AppendLineAndConsole($"Folder size AFTER : {inputFolderSize2.ToMBStr()}");
+            sb.AppendLineAndConsole($"Saved space : {(inputFolderSize1 - inputFolderSize2).ToMBStr()}");
         }
+
         sb.AppendLineAndConsole($"Executed in: {Math.Round(stopwatch.Elapsed.TotalMinutes, 2)} min");
         sb.AppendLineAndConsole($"====================================================");
-
         sb.AppendToFile();
     }
 }
