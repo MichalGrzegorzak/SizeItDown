@@ -71,7 +71,7 @@ public static class Commands
                 }
                 var percent = size.Input.PercentChange(size.Output)*-1;
                 sb.AppendLineAndConsole($"Replaced file: {shortInpFilePath}, sizes: {size.Input.ToKBStr()} -> {size.Output.ToKBStr()}, red: {size.Diff.ToKBStr()} ({percent}%)");
-                sb.AppendLine(size.ToString());
+                sb.AppendLineAndConsole(size.ToString());
             }
             else
             {
@@ -84,13 +84,13 @@ public static class Commands
             }
         }
         
-        var text = sb.ToString();
-        sb.Clear();
-        var lines = text.Replace("\r","").Split('\n');
-        var sortedLines = lines.OrderBy(x => x).ToList();
-
-        foreach (var line in sortedLines)
-            sb.AppendLineAndConsole(line);
+        // var text = sb.ToString();
+        // sb.Clear();
+        // var lines = text.Replace("\r","").Split('\n');
+        // var sortedLines = lines.OrderBy(x => x).ToList();
+        //
+        // foreach (var line in sortedLines)
+        //     sb.AppendLineAndConsole(line);
 
         sb.AppendLineAndConsole("");
         sb.AppendLineAndConsole("=====================");

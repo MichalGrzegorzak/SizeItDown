@@ -48,4 +48,7 @@ public class Options
     
     [Option('c', "imageConvTo", Required = false, HelpText = "Converts to WebP or Avif")]
     public string ImageConvTo { get; set; } = "WebP";
+    
+    [Option('d', "takeOnlyOlderFilesByXdays", Required = false, HelpText = "Additional protection, to not process same files twice")]
+    public int FilterFilesOlderThanXdays { get; set; } = 1;
 }

@@ -2,7 +2,10 @@
 using System.Reflection;
 using Ardalis.GuardClauses;
 using CommandLine;
+using SizeItDown.Features.Core;
 using SizeItDown.Generators;
+using Xabe.FFmpeg;
+using Xabe.FFmpeg.Downloader;
 
 // first run will add it for you
 FileHlp.SaveResourceFileOnDisk("start_conversion.bat");
@@ -17,6 +20,11 @@ return;
 async Task Start(Options o)
 {
     Console.WriteLine("Started..");
+    
+    //don't really need it, experimenting with reading bitrate
+    await FFmpegDownloader.GetLatestVersion(FFmpegVersion.Official);
+    FFmpeg.SetExecutablesPath(".");
+    
     var stopwatch = Stopwatch.StartNew();
     MyAppContext.Instance.IsTestMode = o.TestMode;
 
@@ -35,7 +43,12 @@ async Task Start(Options o)
     o.TempOutDir = Path.Combine(o.TempOutDir, timestamp);
     Directory.CreateDirectory(o.TempOutDir);
 
-    var allFilesList = Directory.EnumerateFiles(o.InputDir, "*.*", SearchOption.AllDirectories).ToList();
+    //video encoder, can encode your file multiple times, resulting in less space, but also lower quality - so that might be a safety feature
+    var minDate = DateTime.UtcNow.AddDays(o.FilterFilesOlderThanXdays*-1); //safety feature
+    
+    var allFilesList = Directory.EnumerateFiles(o.InputDir, "*.*", SearchOption.AllDirectories)
+            .Where(file => File.GetLastWriteTimeUtc(file) < minDate)
+            .ToList();
     var inputFolderSize1 = allFilesList.Sum(x => new FileInfo(x).Length);
 
     var mediaFiles = allFilesList
@@ -95,7 +108,12 @@ async Task Start(Options o)
         }
 
         // VIDEOS
-        var videoFiles = mediaFiles.Where(x => Const.VideoExtensions.Contains(Path.GetExtension(x), StringComparer.OrdinalIgnoreCase)).ToList();
+        var videoFiles = mediaFiles.Where(path =>
+        {
+            string extension = Path.GetExtension(path);
+            return !Path.GetFileNameWithoutExtension(path).EndsWith("_[c]") 
+                   && Const.VideoExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase);
+        }).ToList();
 
         //Hanbrake.Generate(o, videoFiles);
         if (o.DoVideos)
@@ -139,6 +157,13 @@ async Task Start(Options o)
             sb.AppendLineAndConsole($"Videos failed: {results.VideosFailed}");
             sb.AppendLineAndConsole($"Videos replaced: {results.VideosReplaced}");
             sb.AppendLineAndConsole($"Videos larger after: {results.VideosBiggerAfter}");
+            
+            sb.AppendLineAndConsole($"\nConversion per codec: {results.VideosBiggerAfter}");
+            foreach (var pair in results.CodecResults)
+            {
+                var v = pair.Value;
+                sb.AppendLineAndConsole($"\t{pair.Key} - pos: {v.Positive}, neg: {v.Negative}");
+            }
             sb.AppendLineAndConsole($"====================================================");
         }
 

@@ -1,5 +1,8 @@
 ﻿using System.Diagnostics;
 using Ardalis.GuardClauses;
+using SizeItDown.Features.Core;
+using Xabe.FFmpeg;
+using Xabe.FFmpeg.Downloader;
 
 namespace SizeItDown.Generators;
 
@@ -24,7 +27,7 @@ public class HandbrakeRunner
         _sb.AppendLineAndConsole($"\nStarting video conversion, files count: {cnt}");
         _sb.AppendLineAndConsole($"\nUsing Handbrake video preset: {o.VideoPreset}");
         _sb.AppendLineAndConsole($"Handbrake logs in: {logFilePath}\n");
-
+        
         //acquiring logFilePath fails
         //await Parallel.ForEachAsync(videoFiles, async (inputFile, cancellationToken) =>
         //
@@ -33,30 +36,43 @@ public class HandbrakeRunner
         foreach (var inputFile in videoFiles)
         {
             var outPutFile = inputFile.Replace(o.InputDir, o.TempOutDir);
+            var shorterFilePath = inputFile.Replace(o.InputDir, "");
+            
             string arguments = $"--preset-import-file \"{o.VideoPreset}\" -i \"{inputFile}\" -o \"{outPutFile}\"";
+            
+            var mediaInfo = await FFmpeg.GetMediaInfo(inputFile);
+            var videoStream = mediaInfo.VideoStreams.First();
+            string codec = videoStream.Codec;  // e.g., "hevc"
+            long bitrate = videoStream.Bitrate/(1024*1024);
+            string dimension = $"{videoStream.Width}x{videoStream.Height}";
 
+            string beginning = $"Video {idx}/{cnt}";
+            _sb.AppendLineAndConsole($"{beginning}, {shorterFilePath} => codec:{codec}, bitrate:{bitrate}, dimensions:{dimension}");
             await RunHandBrakeAsync(arguments, logFilePath, _sb);
 
-            var shorterFilePath = inputFile.Replace(o.InputDir, "");
             var outputFileInfo = new FileInfo(outPutFile);
             if (!outputFileInfo.Exists)
             {
                 _results.VideosFailed++;
-                _sb.AppendLineAndConsole($"Video processing: {idx++}/{cnt} - {shorterFilePath} - FAILED, skipping it.");
+                _sb.AppendLineAndConsole($"{beginning}, processing FAILED,  skipping it.");
                 continue;
             }
-           
+
             var sizes = new FileSizes(new FileInfo(inputFile), outputFileInfo);
 
             //lock (writeLock)
             {
                 //_sb.AppendLineAndConsole($"Processing: {idx++}/{cnt} - {shorterFilePath}");
-                string biggerOrsmaller = sizes.Input > sizes.Output ? "smaller" : "larger";
-                _sb.AppendLineAndConsole($"Video processing: {idx++}/{cnt} - {shorterFilePath}, before: {sizes.Input.ToMBStr()}, after: {sizes.Output.ToMBStr()}, result: {biggerOrsmaller}");
+                string biggerOrsmaller = sizes.Input > sizes.Output ? "less" : "more";
+                _sb.AppendLineAndConsole($"{beginning}, size before: {sizes.Input.ToKBStr()}, after: {sizes.Output.ToKBStr()}, result: {biggerOrsmaller}");
                 _results.VideosProcessed++;
                 _results.VideosTotalSizeBefore += sizes.Input;
                 _results.VideosTotalSizeAfter += sizes.Output;
 
+                outputFileInfo.AddPostfix("_[c]"); //marking to not process this file again
+                if (!_results.CodecResults.ContainsKey(codec))
+                    _results.CodecResults.Add(codec, new ResultTracker());
+                
                 if (sizes.Output < sizes.Input)
                 {
                     if (o.AutoReplace && !MyAppContext.Instance.IsTestMode)
@@ -65,13 +81,21 @@ public class HandbrakeRunner
                         await FileHlp.ReplaceFileAsync(outPutFile, inputFile);
                         //File.Move(outPutFile, inputFile, true);
                     }
+
+                    _results.CodecResults[codec].Positive++;
                 }
                 else
                 {
+                    _results.CodecResults[codec].Negative++;
                     _results.VideosBiggerAfter++;
-                    if(o.AutoReplace && !MyAppContext.Instance.IsTestMode)
+                    if (o.AutoReplace && !MyAppContext.Instance.IsTestMode)
+                    {
                         File.Delete(outPutFile);
+                        new FileInfo(inputFile).AddPostfix("_[c]"); //marking to not process this file again
+                    }
                 }
+
+                idx++;
             }
         };
         

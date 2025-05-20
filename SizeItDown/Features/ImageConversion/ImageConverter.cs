@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using ImageMagick;
+using SizeItDown.Features.Core;
 
 namespace SizeItDown.Generators;
 
@@ -69,11 +70,11 @@ public class ImageConverter
         var reduction = before - after;
         var percent = before.PercentChange(after)*-1;
         
-        sb.AppendLine("=============================");
-        sb.AppendLine("Total size before: " + before.ToMBStr());
-        sb.AppendLine("Total size after: " + after.ToMBStr());
-        sb.AppendLine($"Total size deleted: {_deletedFileSize.ToMBStr()}");
-        sb.AppendLine($"Total size reduction: {reduction.ToMBStr()}, perc: ({percent:F1}%)");
-        sb.AppendLine("==============================");
+        sb.AppendLineAndConsole("=============================");
+        sb.AppendLineAndConsole("Total size before: " + before.ToMBStr());
+        sb.AppendLineAndConsole("Total size after: " + after.ToMBStr());
+        sb.AppendLineAndConsole($"Total size deleted: {_deletedFileSize.ToMBStr()}");
+        sb.AppendLineAndConsole($"Total size reduction: {reduction.ToMBStr()}, perc: ({percent:F1}%)");
+        sb.AppendLineAndConsole("==============================");
     }
 }

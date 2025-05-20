@@ -48,7 +48,8 @@ public class MagickImageBuilder : IDisposable
 
     public async Task<ConversionInfo> SaveAsync(string toPath, bool deleteOrg = true)
     {
-        toPath = toPath.Replace(_inpImg.Extension, _ext); //changing extension if we converted
+        toPath = Path.ChangeExtension(toPath, _ext);
+        //toPath = toPath.Replace(_inpImg.Extension, _ext); //changing extension if we converted
         
         await _image.WriteAsync(toPath);
         _ci.SizeAfter = new FileInfo(toPath).Length;

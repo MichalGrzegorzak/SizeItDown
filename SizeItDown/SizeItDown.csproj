@@ -10,12 +10,14 @@
         <InvariantGlobalization>true</InvariantGlobalization>
         <AssemblyName>SizeItDown</AssemblyName>
         <RootNamespace>SizeItDown</RootNamespace>
+        <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
     </PropertyGroup>
 
     <ItemGroup>
       <PackageReference Include="Ardalis.GuardClauses" Version="5.0.0" />
       <PackageReference Include="CommandLineParser" Version="2.9.1" />
       <PackageReference Include="Magick.NET-Q8-AnyCPU" Version="14.6.0" />
+      <PackageReference Include="Xabe.FFmpeg.Downloader" Version="6.0.1" />
     </ItemGroup>
 
     <ItemGroup>
