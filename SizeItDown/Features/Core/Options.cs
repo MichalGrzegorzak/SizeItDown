@@ -38,7 +38,7 @@ public class Options
     public string TempOutDir { get; set; } = @"D:\Conversion\TEMP";
 
     [Option('p', "videoPreset", Required = false, HelpText = "HandBrake Video Preset name")]
-    public string VideoPreset { get; set; } = "HandbrakeVideoPreset.json";
+    public string VideoPreset { get; set; }
     
     [Option('q', "imageQuality", Required = false, HelpText = "Image Quality, def: 80")]
     public int ImageQuality { get; set; } = 80;
@@ -50,5 +50,5 @@ public class Options
     public string ImageConvTo { get; set; } = "WebP";
     
     [Option('d', "takeOnlyOlderFilesByXdays", Required = false, HelpText = "Additional protection, to not process same files twice")]
-    public int FilterFilesOlderThanXdays { get; set; } = 1;
+    public int FilterFilesOlderThanXdays { get; set; } = 3;
 }

@@ -55,6 +55,13 @@ public class HandbrakeRunner
                 long bitrate = videoStream.Bitrate/(1024*1024);
                 string dimension = $"{videoStream.Width}x{videoStream.Height}";
                 _sb.AppendLineAndConsole($"{beginning}, {shorterFilePath} => codec:{codec}, bitrate:{bitrate}, dimensions:{dimension}");
+
+                if (codec == "h264" || codec == "vp9" || codec == "mss2")
+                {
+                    _sb.AppendLineAndConsole($"{beginning}, SKIPPING codec: {codec}");
+                    _results.VideosSkipped++;
+                    return;
+                }
             }
             catch (Exception e)
             {

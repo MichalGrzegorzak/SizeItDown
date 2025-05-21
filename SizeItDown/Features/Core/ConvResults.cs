@@ -12,6 +12,7 @@ public class ConvResults
     public int VideosCount { get; set; }
     public int VideosProcessed { get; set; }
     public int VideosFailed { get; set; }
+    public int VideosSkipped { get; set; }
     public int VideosBadFile { get; set; }
     public int VideosReplaced { get; set; }
     public int VideosBiggerAfter { get; set; }

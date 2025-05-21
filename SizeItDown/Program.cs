@@ -22,7 +22,7 @@ async Task Start(Options o)
     Console.WriteLine("Started..");
     
     //don't really need it, experimenting with reading bitrate
-    // await FFmpegDownloader.GetLatestVersion(FFmpegVersion.Official);
+    await FFmpegDownloader.GetLatestVersion(FFmpegVersion.Official);
     FFmpeg.SetExecutablesPath(".");
     
     var stopwatch = Stopwatch.StartNew();
@@ -90,12 +90,10 @@ async Task Start(Options o)
 
         allFilesList = null; //clears some mem if many files
 
-        //SaveResourceFileOnDisk("cropAndconvertImagesToWebP.py");
         double imagesConvertedIn = 0;
         var results = new ConvResults();
 
         // IMAGES
-        //WebPGenerator.Generate(o, deletedFileSize);
         if (o.DoImages)
         {
             Console.WriteLine("Images conversion started");
@@ -115,7 +113,6 @@ async Task Start(Options o)
                    && Const.VideoExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase);
         }).ToList();
 
-        //Hanbrake.Generate(o, videoFiles);
         if (o.DoVideos)
         {
             Console.WriteLine("Videos conversion started");
@@ -126,12 +123,15 @@ async Task Start(Options o)
         }
 
         // REPLACE FILES
-        //Hanbrake.GenerateReplaceFile(o);
         if (o.AutoReplace)
         {
             sb = new MyStringBuilder($"{o.InputDir}\\replacementLog_{timestamp}.txt");
             Commands.Replace(o, videoFiles, sb);
             sb.AppendToFile();
+        }
+        else
+        {
+            Hanbrake.GenerateReplaceFile(o);
         }
 
         allFilesList = Directory.EnumerateFiles(o.InputDir, "*.*", SearchOption.AllDirectories).ToList();
@@ -155,6 +155,7 @@ async Task Start(Options o)
             sb.AppendLineAndConsole($"====================================================");
             sb.AppendLineAndConsole($"Videos found: {results.VideosCount}");
             sb.AppendLineAndConsole($"Videos failed: {results.VideosFailed}");
+            sb.AppendLineAndConsole($"Videos skipped: {results.VideosSkipped}");
             sb.AppendLineAndConsole($"Videos bad file: {results.VideosBadFile}");
             sb.AppendLineAndConsole($"Videos replaced: {results.VideosReplaced}");
             sb.AppendLineAndConsole($"Videos larger after: {results.VideosBiggerAfter}");
@@ -168,7 +169,7 @@ async Task Start(Options o)
             sb.AppendLineAndConsole($"====================================================");
         }
 
-        if (o.ReplaceMode || o.AutoReplace)
+        if (o.ReplaceMode || o.AutoReplace || MyAppContext.Instance.IsTestMode)
         {
             //sb.AppendLineAndConsole($"Folder size at START: {results.ImagesTotalSizeBefore.ToMBStr()}");
             sb.AppendLineAndConsole($"Folder size BEFORE: {inputFolderSize1.ToMBStr()}");
