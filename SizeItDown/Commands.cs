@@ -119,15 +119,24 @@ public static class Commands
             }
         }
 
-        //deleting empty
-        foreach (var dirInfo in new DirectoryInfo(o.TempOutDir).GetDirectories())
+        //deleting empty folders in temp
+        var allDirs = new DirectoryInfo(o.TempOutDir).GetDirectories().OrderByDescending(x=> x.FullName);
+        foreach (var dirInfo in allDirs)
         {
             var empty =  !dirInfo.EnumerateFiles().Any();
             if (empty)
             {
                 if (!o.TestMode)
                 {
-                    dirInfo.Delete();
+                    try
+                    {
+                        dirInfo.Delete();
+                    }
+                    catch (Exception e)
+                    {
+                        sb.AppendLineAndConsole($"Error deleting: {dirInfo.Name}, e: {e.Message}");
+                    }
+                    
                 }
                 sb.AppendLineAndConsole($"Deleted: {dirInfo.Name}");
             }
